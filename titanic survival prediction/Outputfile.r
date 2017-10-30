@@ -152,7 +152,7 @@ p3 <- ggplot(embark_fare, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
   scale_y_continuous(labels=dollar_format()) +
   theme_few()
 
-#Voilà! The median fare for a first class passenger departing from Charbourg ('C') coincides nicely with the $80 paid by our embarkment-deficient passengers. I think we can safely replace the NA values with 'C'.
+#VoilÃ ! The median fare for a first class passenger departing from Charbourg ('C') coincides nicely with the $80 paid by our embarkment-deficient passengers. I think we can safely replace the NA values with 'C'.
 
 # Since their fare was $80 for 1st class, they most likely embarked from 'C'
 full$Embarked[c(62, 830)] <- 'C'
