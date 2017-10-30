@@ -1,20 +1,4 @@
-layoutMatrix <- matrix(
-  c(
-    1, 2,
-    3, 4,
-    5, 6,
-    7, 8,
-    7, 8
-  ), 
-  byrow = TRUE, 
-  nrow = 4
-)
-
-# Call the layout() function to set up the plot array
-layout(layoutMatrix)
-
-# Show where the three plots will go 
-layout.show(n = 8)
+par(mfrow = c(2,2))
 
 
 # There are three parts to my script as follows:
@@ -27,6 +11,8 @@ layout.show(n = 8)
 
 # ```{r, message = FALSE}
 # Load packages
+library('grid')
+library('gridExtra')
 library('ggplot2') # visualization
 library('ggthemes') # visualization
 library('scales') # visualization
@@ -110,7 +96,7 @@ full$Family <- paste(full$Surname, full$Fsize, sep='_')
 
 # What does our family size variable look like? To help us understand how it may relate to survival, let's plot it among the training data.
 # # Use ggplot2 to visualize the relationship between family size & survival
-ggplot(full[1:891,], aes(x = Fsize, fill = factor(Survived))) +
+p1 <- ggplot(full[1:891,], aes(x = Fsize, fill = factor(Survived))) +
   geom_bar(stat='count', position='dodge') +
   scale_x_continuous(breaks=c(1:11)) +
   labs(x = 'Family Size') +
@@ -122,7 +108,7 @@ full$FsizeD[full$Fsize < 5 & full$Fsize > 1] <- 'small'
 full$FsizeD[full$Fsize > 4] <- 'large'
 
 # Show family size by survival using a mosaic plot
-mosaicplot(table(full$FsizeD, full$Survived), main='Family Size by Survival', shade=TRUE)
+p2 <- mosaicplot(table(full$FsizeD, full$Survived), main='Family Size by Survival', shade=TRUE)
 
 # The mosaic plot shows that we preserve our rule that there's a survival penalty among singletons and large families, but a benefit for passengers in small families. I want to do something further with our age variable, but `r sum(is.na(full$Age))` rows have missing age values, so we will have to wait until after we address missingness.
 
@@ -159,14 +145,14 @@ embark_fare <- full %>%
   filter(PassengerId != 62 & PassengerId != 830)
 
 # Use ggplot2 to visualize embarkment, passenger class, & median fare
-ggplot(embark_fare, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
+p3 <- ggplot(embark_fare, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
   geom_boxplot() +
   geom_hline(aes(yintercept=80), 
              colour='red', linetype='dashed', lwd=2) +
   scale_y_continuous(labels=dollar_format()) +
   theme_few()
 
-#Voilà! The median fare for a first class passenger departing from Charbourg ('C') coincides nicely with the $80 paid by our embarkment-deficient passengers. I think we can safely replace the NA values with 'C'.
+#VoilÃ ! The median fare for a first class passenger departing from Charbourg ('C') coincides nicely with the $80 paid by our embarkment-deficient passengers. I think we can safely replace the NA values with 'C'.
 
 # Since their fare was $80 for 1st class, they most likely embarked from 'C'
 full$Embarked[c(62, 830)] <- 'C'
@@ -178,7 +164,7 @@ full[1044, ]
 
 # This is a third class passenger who departed from Southampton ('S'). Let's visualize Fares among all others sharing their class and embarkment (n = `r nrow(full[full$Pclass == '3' & full$Embarked == 'S', ]) - 1`).
 
-ggplot(full[full$Pclass == '3' & full$Embarked == 'S', ], 
+p4 <- ggplot(full[full$Pclass == '3' & full$Embarked == 'S', ], 
        aes(x = Fare)) +
   geom_density(fill = '#99d6ff', alpha=0.4) + 
   geom_vline(aes(xintercept=median(Fare, na.rm=T)),
@@ -239,7 +225,7 @@ sum(is.na(full$Age))
 # Now that we know everyone's age, we can create a couple of new age-dependent variables: **Child** and **Mother**. A child will simply be someone under 18 years of age and a mother is a passenger who is 1) female, 2) is over 18, 3) has more than 0 children (no kidding!), and 4) does not have the title 'Miss'.
 
 # First we'll look at the relationship between age & survival
-ggplot(full[1:891,], aes(Age, fill = factor(Survived))) + 
+p5 <- ggplot(full[1:891,], aes(Age, fill = factor(Survived))) + 
   geom_histogram() + 
   # I include Sex since we know (a priori) it's a significant predictor
   facet_grid(.~Sex) + 
@@ -299,7 +285,7 @@ rf_model <- randomForest(factor(Survived) ~ Pclass + Sex + Age + SibSp + Parch +
                          data = train)
 
 # Show model error
-plot(rf_model, ylim=c(0,0.36))
+p6 <- plot(rf_model, ylim=c(0,0.36))
 legend('topright', colnames(rf_model$err.rate), col=1:3, fill=1:3)
 # ```
 
@@ -319,7 +305,7 @@ rankImportance <- varImportance %>%
   mutate(Rank = paste0('#',dense_rank(desc(Importance))))
 
 # Use ggplot2 to visualize the relative importance of variables
-ggplot(rankImportance, aes(x = reorder(Variables, Importance), 
+p7 <- ggplot(rankImportance, aes(x = reorder(Variables, Importance), 
                            y = Importance, fill = Importance)) +
   geom_bar(stat='identity') + 
   geom_text(aes(x = Variables, y = 0.5, label = Rank),
@@ -349,3 +335,4 @@ write.csv(solution, file = 'rf_mod_Solution.csv', row.names = F)
 
 # Thank you for taking the time to read through my first exploration of a Kaggle dataset. I look forward to doing more. Again, this newbie welcomes comments and suggestions!
 
+grid.arrange(p1, p3, p4, p5, p7, ncol=2)
